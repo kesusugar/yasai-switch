@@ -1,5 +1,5 @@
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Image, SafeAreaView, StyleSheet, View } from 'react-native';
 import { Character } from '../components/Character';
 import { LevelUpOverlay } from '../components/LevelUpOverlay';
@@ -50,7 +50,7 @@ export const GameScreen: React.FC<Props> = () => {
         playSound('levelup');
         break;
     }
-  }, [game.gameState]);
+  }, [game.gameState, playSound]);
 
   // reactionGood/Normal/Bad → 2秒後に finishReaction
   useEffect(() => {
@@ -94,6 +94,23 @@ export const GameScreen: React.FC<Props> = () => {
   const isMenuVisible = game.gameState === 'menuOpen';
   const isXPAnimating = game.gameState === 'xpGain';
 
+  // xpGain 中は gainedXP を加算した目標割合を渡す（アニメーションのターゲット）
+  const xpBarTargetRatio = useMemo(() => {
+    if (!isXPAnimating) return game.xpRatio;
+    const total = game.currentXP + game.gainedXP;
+    return Math.min(total / game.requiredXP, 1);
+  }, [isXPAnimating, game.currentXP, game.gainedXP, game.requiredXP, game.xpRatio]);
+
+  // レベルアップ後の余剰XP割合（レベルアップ時のみ）
+  const surplusXpRatio = useMemo(() => {
+    if (!isXPAnimating) return 0;
+    const total = game.currentXP + game.gainedXP;
+    if (total < game.requiredXP) return 0;
+    const surplus = total - game.requiredXP;
+    const nextLevelRequired = (game.level + 1) * 500;
+    return Math.min(surplus / nextLevelRequired, 1);
+  }, [isXPAnimating, game.currentXP, game.gainedXP, game.requiredXP, game.level]);
+
   return (
     <View style={styles.container}>
       {/* 背景 */}
@@ -107,7 +124,8 @@ export const GameScreen: React.FC<Props> = () => {
         {/* XPバー */}
         <XPBar
           level={game.level}
-          xpRatio={game.xpRatio}
+          xpRatio={xpBarTargetRatio}
+          surplusXpRatio={surplusXpRatio}
           animating={isXPAnimating}
           onAnimationComplete={game.applyXP}
         />

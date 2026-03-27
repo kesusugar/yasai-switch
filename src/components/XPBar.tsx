@@ -4,44 +4,30 @@ import { Colors } from '../constants/colors';
 
 interface Props {
   level: number;
-  xpRatio: number; // 0.0 ~ 1.0
+  xpRatio: number;      // 0.0 ~ 1.0 (目標割合、xpGain中は gainedXP 込み)
+  surplusXpRatio: number; // レベルアップ時の余剰割合（次レベル基準）
   animating: boolean;
   onAnimationComplete?: () => void;
 }
 
-export const XPBar: React.FC<Props> = ({ level, xpRatio, animating, onAnimationComplete }) => {
+export const XPBar: React.FC<Props> = ({ level, xpRatio, surplusXpRatio, animating, onAnimationComplete }) => {
   const widthAnim = useRef(new Animated.Value(xpRatio)).current;
-  const prevRatio = useRef(xpRatio);
 
   useEffect(() => {
     if (!animating) {
       widthAnim.setValue(xpRatio);
-      prevRatio.current = xpRatio;
       return;
     }
 
-    // レベルアップ時: 満タン → 0にリセット → 余剰分まで伸ばす
-    const wasLevelUp = prevRatio.current > xpRatio + 0.1;
+    const isLevelUp = xpRatio >= 1;
 
-    if (wasLevelUp) {
+    if (isLevelUp) {
+      // 満タン → 0にリセット → 余剰分まで伸ばす → applyXP 呼び出し
       Animated.sequence([
-        Animated.timing(widthAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: false,
-        }),
-        Animated.timing(widthAnim, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: false,
-        }),
-        Animated.timing(widthAnim, {
-          toValue: xpRatio,
-          duration: 500,
-          useNativeDriver: false,
-        }),
+        Animated.timing(widthAnim, { toValue: 1, duration: 300, useNativeDriver: false }),
+        Animated.timing(widthAnim, { toValue: 0, duration: 100, useNativeDriver: false }),
+        Animated.timing(widthAnim, { toValue: surplusXpRatio, duration: 500, useNativeDriver: false }),
       ]).start(() => {
-        prevRatio.current = xpRatio;
         onAnimationComplete?.();
       });
     } else {
@@ -50,11 +36,10 @@ export const XPBar: React.FC<Props> = ({ level, xpRatio, animating, onAnimationC
         duration: 600,
         useNativeDriver: false,
       }).start(() => {
-        prevRatio.current = xpRatio;
         onAnimationComplete?.();
       });
     }
-  }, [animating, xpRatio]);
+  }, [animating, xpRatio, surplusXpRatio]);
 
   return (
     <View style={styles.wrapper}>

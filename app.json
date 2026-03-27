@@ -1,7 +1,11 @@
 {
   "expo": {
-    "name": "yasai-temp",
-    "slug": "yasai-temp",
-    "version": "1.0.0"
+    "name": "ヤサイスイッチ",
+    "slug": "yasai-switch",
+    "version": "1.0.0",
+    "ios": {
+      "bundleIdentifier": "com.yasaiswitch.app",
+      "buildNumber": "1"
+    }
   }
 }
