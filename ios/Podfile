@@ -59,17 +59,5 @@ target 'yasaitemp' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-
-    # Fix: expo-av 16.x imports EXEventEmitter.h / EXEventEmitterService.h
-    # which were removed from expo-modules-core 55.x.
-    # Shim headers live in ios/ExpoModulesCore/. Add ios/ to EXAV's search paths
-    # so <ExpoModulesCore/EXEventEmitter.h> resolves correctly.
-    installer.pods_project.targets.each do |target|
-      next unless target.name == 'EXAV'
-      target.build_configurations.each do |config|
-        existing = Array(config.build_settings['HEADER_SEARCH_PATHS'] || ['$(inherited)'])
-        config.build_settings['HEADER_SEARCH_PATHS'] = existing + ["\"#{__dir__}\""]
-      end
-    end
   end
 end
