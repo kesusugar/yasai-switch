@@ -61,36 +61,15 @@ target 'yasaitemp' do
     )
 
     # Fix: expo-av 16.x imports EXEventEmitter.h / EXEventEmitterService.h
-    # which were removed from expo-modules-core 55.x. Create compatibility shims.
-    require 'fileutils'
-    headers_dir = File.join(installer.sandbox.root, 'Headers', 'Public', 'ExpoModulesCore')
-    FileUtils.mkdir_p(headers_dir)
-
-    event_emitter_path = File.join(headers_dir, 'EXEventEmitter.h')
-    unless File.exist?(event_emitter_path)
-      File.write(event_emitter_path, <<~HEADER)
-        // Compatibility shim - EXEventEmitter was removed from expo-modules-core 55.x
-        #pragma once
-        #import <Foundation/Foundation.h>
-        @protocol EXEventEmitter <NSObject>
-        - (NSArray<NSString *> *)supportedEvents;
-        - (void)startObserving;
-        - (void)stopObserving;
-        @end
-      HEADER
-    end
-
-    event_emitter_svc_path = File.join(headers_dir, 'EXEventEmitterService.h')
-    unless File.exist?(event_emitter_svc_path)
-      File.write(event_emitter_svc_path, <<~HEADER)
-        // Compatibility shim - EXEventEmitterService was removed from expo-modules-core 55.x
-        #pragma once
-        #import <Foundation/Foundation.h>
-        #import <ExpoModulesCore/EXInternalModule.h>
-        @protocol EXEventEmitterService <EXInternalModule>
-        - (void)sendEventWithName:(NSString *)eventName body:(id)body;
-        @end
-      HEADER
+    # which were removed from expo-modules-core 55.x.
+    # Shim headers live in ios/ExpoModulesCore/. Add ios/ to EXAV's search paths
+    # so <ExpoModulesCore/EXEventEmitter.h> resolves correctly.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'EXAV'
+      target.build_configurations.each do |config|
+        existing = Array(config.build_settings['HEADER_SEARCH_PATHS'] || ['$(inherited)'])
+        config.build_settings['HEADER_SEARCH_PATHS'] = existing + ["\"#{__dir__}\""]
+      end
     end
   end
 end
